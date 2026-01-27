@@ -63,6 +63,52 @@ def signup_user(
         raise HTTPException(400, f'Cognito signup exception: {e}')
 
 
+@router.post("/login")
+def login_user(data: LoginRequest, response: Response):
+    try:
+        secret_hash = get_secret_hash(
+            data.email,
+            COGNITO_CLIENT_ID,
+            COGNITO_CLIENT_SECRET
+        )
+
+        cognito_response = cognito_client.initiate_auth(
+            ClientId=COGNITO_CLIENT_ID,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={
+                "USERNAME": data.email,
+                "PASSWORD": data.password,
+                "SECRET_HASH": secret_hash
+            }
+        )
+
+        auth_result = cognito_response.get("AuthenticationResult")
+
+        if not auth_result:
+            raise HTTPException(400, "Incorrect cognito response")
+
+        access_token = auth_result.get("AccessToken")
+        refresh_token = auth_result.get("RefreshToken")
+
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=True
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True
+        )
+
+        return {"message": "User logged in successfully!"}
+
+    except Exception as e:
+        raise HTTPException(400, f'Cognito login exception: {e}')
+
+
 @router.get("/me")
 def protected_route(user=Depends(get_current_user)):
     return {"message": "You are authenticated", "user": user}
