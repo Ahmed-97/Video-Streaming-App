@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 import boto3
+from backend.db.middleware.auth_middleware import get_current_user
 from backend.db.db import get_db
 from backend.pydantic_models.auth_models import ConfirmSignupRequest, LoginRequest, SignupRequest
 from backend.secret_keys import SecretKeys
@@ -50,3 +51,8 @@ def signup_user(
 
     except Exception as e:
         raise HTTPException(400, f'Cognito signup exception: {e}')
+
+
+@router.get("/me")
+def protected_route(user=Depends(get_current_user)):
+    return {"message": "You are authenticated", "user": user}
