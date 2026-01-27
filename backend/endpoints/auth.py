@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 import boto3
 from backend.db.middleware.auth_middleware import get_current_user
+from backend.db.models.user import User
 from backend.db.db import get_db
 from backend.pydantic_models.auth_models import ConfirmSignupRequest, LoginRequest, SignupRequest
 from backend.secret_keys import SecretKeys
@@ -44,7 +45,11 @@ def signup_user(
         if not cognito_sub:
             raise HTTPException(400, "Cognito did not return a valid user sub")
 
-        new_user = ""
+        new_user = User(
+            name=data.name,
+            email=data.email,
+            cognito_sub=cognito_sub
+        )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
