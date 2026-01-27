@@ -3,6 +3,7 @@ import boto3
 from backend.db.middleware.auth_middleware import get_current_user
 from backend.db.models.user import User
 from backend.db.db import get_db
+from backend.helper.auth_helper import get_secret_hash
 from backend.pydantic_models.auth_models import ConfirmSignupRequest, LoginRequest, SignupRequest
 from backend.secret_keys import SecretKeys
 from sqlalchemy.orm import Session
@@ -27,7 +28,11 @@ def signup_user(
 ):
 
     try:
-        secret_hash = ""  # fixme
+        secret_hash = get_secret_hash(
+            data.email,
+            COGNITO_CLIENT_ID,
+            COGNITO_CLIENT_SECRET,
+        )
 
         cognito_response = cognito_client.sign_up(
             ClientId=COGNITO_CLIENT_ID,
