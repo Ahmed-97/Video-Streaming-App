@@ -109,6 +109,28 @@ def login_user(data: LoginRequest, response: Response):
         raise HTTPException(400, f'Cognito login exception: {e}')
 
 
+@router.post("/confirm-signup")
+def confirm_signup(data: ConfirmSignupRequest):
+    try:
+        secret_hash = get_secret_hash(
+            data.email,
+            COGNITO_CLIENT_ID,
+            COGNITO_CLIENT_SECRET
+        )
+
+        cognito_response = cognito_client.confirm_sign_up(
+            ClientId=COGNITO_CLIENT_ID,
+            Username=data.email,
+            ConfirmationCode=data.otp,
+            SecretHash=secret_hash
+        )
+
+        return {"message": "User Signup Confirmed Successfully!"}
+
+    except Exception as e:
+        raise HTTPException(400, f'Cognito Confirm Signup Exception: {e}')
+
+
 @router.get("/me")
 def protected_route(user=Depends(get_current_user)):
     return {"message": "You are authenticated", "user": user}
