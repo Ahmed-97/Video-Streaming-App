@@ -131,6 +131,51 @@ def confirm_signup(data: ConfirmSignupRequest):
         raise HTTPException(400, f'Cognito Confirm Signup Exception: {e}')
 
 
+@router.post("/refresh")
+def refresh_token(
+        refresh_token_str: str = Cookie(None),
+        user_cognito_sub: str = Cookie(None),
+        response: Response = None
+):
+    try:
+        if not refresh_token_str or not user_cognito_sub:
+            raise HTTPException(400, "Cookies cannot be null")
+        secret_hash = get_secret_hash(
+            user_cognito_sub,
+            COGNITO_CLIENT_ID,
+            COGNITO_CLIENT_SECRET
+        )
+
+        cognito_response = cognito_client.initiate_auth(
+            ClientId=COGNITO_CLIENT_ID,
+            AuthFlow="REFRESH_TOKEN_AUTH",
+            AuthParameters={
+                "REFRESH_TOKEN": refresh_token,
+                "SECRET_HASH": secret_hash,
+            },
+        )
+
+        auth_result = cognito_response.get("AuthenticationResult")
+
+        if not auth_result:
+            raise HTTPException(400, "Incorrect incognito response")
+
+        access_token = auth_result.get("AccessToken")
+
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=True
+        )
+
+        return {"message": "Access Token Refreshed!"}
+
+    except Exception as e:
+        raise HTTPException(400, f'Cognito refresh token exception: {e}')
+
+
+
 @router.get("/me")
 def protected_route(user=Depends(get_current_user)):
     return {"message": "You are authenticated", "user": user}
